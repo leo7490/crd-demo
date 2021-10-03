@@ -19,7 +19,12 @@ package controllers
 import (
 	"context"
 
+	apps "k8s.io/api/apps/v1"
+	core "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -50,7 +55,48 @@ func (r *LeoPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	_ = log.FromContext(ctx)
 
 	// your logic here
-
+	leopod := testv1.LeoPod{}
+	if err := r.Client.Get(ctx, req.NamespacedName, &leopod); err != nil {
+		klog.Error(err, "fail to get my kind resource")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	deployment := &apps.Deployment{}
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Name: leopod.Name,
+	}, deployment)
+	if apierrors.IsNotFound(err) {
+		// create my deployment
+		deployment = r.buildDeployment(leopod)
+		if err := r.Client.Create(ctx, deployment); err != nil {
+			klog.Error(err, "fail to create delployment")
+			return ctrl.Result{}, err
+		}
+		klog.Info("create deloyment resource for leo")
+		return ctrl.Result{}, nil
+	}
+	if err != nil {
+		klog.Error(err, "fail to get delpoyments for leo pod")
+		return ctrl.Result{}, err
+	}
+	klog.Info("existing Deployment resource already exists for leo pod, checking replica count")
+	expectReplicas := leopod.Spec.Replicas
+	if deployment.Spec.Replicas != &expectReplicas {
+		klog.Info("updating replica count", "old_count", *deployment.Spec.Replicas, "new_count", expectReplicas)
+		deployment.Spec.Replicas = &expectReplicas
+		if err := r.Client.Update(ctx, deployment); err != nil {
+			klog.Error(err, "failed to Deployment update replica count")
+			return ctrl.Result{}, err
+		}
+		klog.Warningf("Scaled deployment %+v to %+v replicas", deployment.Spec.Replicas, expectReplicas)
+		return ctrl.Result{}, nil
+	}
+	klog.Infoln("everything is ok,do nothing")
+	leopod.Status.ReadyReplicas = *deployment.Spec.Replicas
+	if r.Client.Status().Update(ctx, &leopod); err != nil {
+		klog.Error(err, "fail to update MyKind Status")
+		return ctrl.Result{}, err
+	}
+	klog.Info("resource status synced")
 	return ctrl.Result{}, nil
 }
 
@@ -59,4 +105,28 @@ func (r *LeoPodReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&testv1.LeoPod{}).
 		Complete(r)
+}
+func (r *LeoPodReconciler) buildDeployment(leopod testv1.LeoPod) *apps.Deployment {
+	d := apps.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: leopod.Name,
+		},
+		Spec: apps.DeploymentSpec{
+			Replicas: &leopod.Spec.Replicas,
+			Template: core.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: leopod.Name,
+				},
+				Spec: core.PodSpec{
+					Containers: []core.Container{
+						{
+							Name:  leopod.Name,
+							Image: leopod.Spec.Image,
+						},
+					},
+				},
+			},
+		},
+	}
+	return &d
 }

@@ -29,15 +29,16 @@ type LeoPodSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of LeoPod. Edit leopod_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
-	Image string `json:"image"`
-	Replicas int `json:"replicas"`
+	Foo      string `json:"foo,omitempty"`
+	Image    string `json:"image"`
+	Replicas int32  `json:"replicas"`
 }
 
 // LeoPodStatus defines the observed state of LeoPod
 type LeoPodStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	ReadyReplicas int32 `json:"readyReplicas,omitempty" protobuf:"varint,7,opt,name=readyReplicas"`
 }
 
 //+kubebuilder:object:root=true
