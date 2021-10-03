@@ -1,0 +1,24 @@
+# permissions for end users to edit leopods.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: leopod-editor-role
+rules:
+- apiGroups:
+  - test.leo.io
+  resources:
+  - leopods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - test.leo.io
+  resources:
+  - leopods/status
+  verbs:
+  - get
