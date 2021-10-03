@@ -20,8 +20,8 @@
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM alpine
-WORKDIR /
-COPY bin/manager .
-USER 65532:65532
+WORKDIR /root
+COPY bin/manager /root/manager
+RUN chmod +x /root/manager
 
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["/root/manager"]

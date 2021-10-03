@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+   name: leocontroller
+spec:
+   replicas: 1
+   selector:
+      matchLabels:
+         app: leocontroller
+   template:
+      metadata:
+         labels:
+            app: leocontroller
+      spec:
+         serviceAccount: controller-manager
+         containers:
+         - name: cbscontroller
+           image: registry-vpc.cn-wulanchabu.aliyuncs.com/leo123/leo-controller:v1
+           imagePullPolicy: Always

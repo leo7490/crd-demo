@@ -57,25 +57,37 @@ func (r *LeoPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// your logic here
 	leopod := testv1.LeoPod{}
 	if err := r.Client.Get(ctx, req.NamespacedName, &leopod); err != nil {
-		klog.Error(err, "fail to get my kind resource")
+		klog.Errorln("fail to get my kind resource: ", err)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	deployment := &apps.Deployment{}
 	err := r.Client.Get(ctx, client.ObjectKey{
-		Name: leopod.Name,
+		Name:      leopod.Name,
+		Namespace: leopod.Namespace,
 	}, deployment)
+	// //need to delete deployment
+	// if leopod.ObjectMeta.DeletionTimestamp.IsZero() {
+	// 	err := r.Client.Delete(ctx, deployment)
+	// 	if err != nil {
+	// 		klog.Errorln("delete deployment:", deployment.Name, err)
+	// 		return ctrl.Result{}, err
+	// 	}
+	// 	klog.Infoln("delete deployment:", deployment.Name)
+	// 	return ctrl.Result{}, nil
+	// }
+	klog.Warningln("get deployment info response:", err)
 	if apierrors.IsNotFound(err) {
 		// create my deployment
 		deployment = r.buildDeployment(leopod)
 		if err := r.Client.Create(ctx, deployment); err != nil {
-			klog.Error(err, "fail to create delployment")
+			klog.Errorln("fail to create delployment:", err)
 			return ctrl.Result{}, err
 		}
-		klog.Info("create deloyment resource for leo")
+		klog.Infof("create deloyment %s resource for leo\n", deployment.Name)
 		return ctrl.Result{}, nil
 	}
 	if err != nil {
-		klog.Error(err, "fail to get delpoyments for leo pod")
+		klog.Errorln("fail to get delpoyments for leo pod :", err)
 		return ctrl.Result{}, err
 	}
 	klog.Info("existing Deployment resource already exists for leo pod, checking replica count")
@@ -93,7 +105,7 @@ func (r *LeoPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	klog.Infoln("everything is ok,do nothing")
 	leopod.Status.ReadyReplicas = *deployment.Spec.Replicas
 	if r.Client.Status().Update(ctx, &leopod); err != nil {
-		klog.Error(err, "fail to update MyKind Status")
+		klog.Errorln("fail to update MyKind Status :", err)
 		return ctrl.Result{}, err
 	}
 	klog.Info("resource status synced")
@@ -109,19 +121,28 @@ func (r *LeoPodReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *LeoPodReconciler) buildDeployment(leopod testv1.LeoPod) *apps.Deployment {
 	d := apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: leopod.Name,
+			Name:      leopod.Name,
+			Namespace: leopod.ObjectMeta.Namespace,
 		},
 		Spec: apps.DeploymentSpec{
 			Replicas: &leopod.Spec.Replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"leopods.test.leo.io": leopod.Name,
+				},
+			},
 			Template: core.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: leopod.Name,
+					Labels: map[string]string{
+						"leopods.test.leo.io": leopod.Name,
+					},
 				},
 				Spec: core.PodSpec{
 					Containers: []core.Container{
 						{
-							Name:  leopod.Name,
-							Image: leopod.Spec.Image,
+							Name:            leopod.Name,
+							Image:           leopod.Spec.Image,
+							ImagePullPolicy: core.PullIfNotPresent,
 						},
 					},
 				},

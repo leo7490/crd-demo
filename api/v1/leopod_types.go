@@ -29,7 +29,7 @@ type LeoPodSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of LeoPod. Edit leopod_types.go to remove/update
-	Foo      string `json:"foo,omitempty"`
+	// Foo      string `json:"foo,omitempty"`
 	Image    string `json:"image"`
 	Replicas int32  `json:"replicas"`
 }

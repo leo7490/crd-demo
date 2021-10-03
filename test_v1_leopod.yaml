@@ -2,6 +2,9 @@ apiVersion: test.leo.io/v1
 kind: LeoPod
 metadata:
   name: leopod-sample
+  namespace: leo
 spec:
   # Add fields here
-  foo: bar
+  image: nginx
+  replicas: 2
+

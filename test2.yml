@@ -1,0 +1,9 @@
+apiVersion: test.leo.io/v1
+kind: LeoPod
+metadata:
+  name: hanlu
+spec:
+  # Add fields here
+  image: nginx
+  replicas: 5
+
