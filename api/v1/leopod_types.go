@@ -54,6 +54,7 @@ type LeoPod struct {
 }
 
 //+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // LeoPodList contains a list of LeoPod
 type LeoPodList struct {

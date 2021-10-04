@@ -36,11 +36,9 @@ spec:
           spec:
             description: LeoPodSpec defines the desired state of LeoPod
             properties:
-              foo:
-                description: Foo is an example field of LeoPod. Edit leopod_types.go
-                  to remove/update
-                type: string
               image:
+                description: Foo is an example field of LeoPod. Edit leopod_types.go
+                  to remove/update Foo      string `json:"foo,omitempty"`
                 type: string
               replicas:
                 format: int32

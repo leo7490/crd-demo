@@ -15,5 +15,6 @@ spec:
          serviceAccount: controller-manager
          containers:
          - name: cbscontroller
-           image: registry-vpc.cn-wulanchabu.aliyuncs.com/leo123/leo-controller:v1
+           image: registry-vpc.cn-hangzhou.aliyuncs.com/leo123/leo-controller:v1
            imagePullPolicy: Always
+           

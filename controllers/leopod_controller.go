@@ -1,4 +1,4 @@
-/*
+/**
 Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,16 +65,29 @@ func (r *LeoPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Name:      leopod.Name,
 		Namespace: leopod.Namespace,
 	}, deployment)
-	// //need to delete deployment
-	// if leopod.ObjectMeta.DeletionTimestamp.IsZero() {
-	// 	err := r.Client.Delete(ctx, deployment)
-	// 	if err != nil {
-	// 		klog.Errorln("delete deployment:", deployment.Name, err)
-	// 		return ctrl.Result{}, err
-	// 	}
-	// 	klog.Infoln("delete deployment:", deployment.Name)
-	// 	return ctrl.Result{}, nil
-	// }
+
+	leoFinalizerName := "testDelete"
+	if leopod.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !in(leoFinalizerName, leopod.ObjectMeta.Finalizers) {
+			klog.Infoln("add finalizer :")
+			leopod.ObjectMeta.Finalizers = append(leopod.ObjectMeta.Finalizers, leoFinalizerName)
+			err := r.Update(ctx, &leopod)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		klog.Infoln("erase finalizer :")
+		leopod.ObjectMeta.Finalizers = nil
+		err := r.Update(ctx, &leopod)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		klog.Infoln("delete deployment")
+		err = r.Delete(ctx, deployment)
+		return ctrl.Result{}, err
+	}
+
 	klog.Warningln("get deployment info response:", err)
 	if apierrors.IsNotFound(err) {
 		// create my deployment
@@ -150,4 +163,12 @@ func (r *LeoPodReconciler) buildDeployment(leopod testv1.LeoPod) *apps.Deploymen
 		},
 	}
 	return &d
+}
+func in(target string, str_array []string) bool {
+	for _, element := range str_array {
+		if target == element {
+			return true
+		}
+	}
+	return false
 }
